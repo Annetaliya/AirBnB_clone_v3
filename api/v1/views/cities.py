@@ -28,7 +28,7 @@ def city_state(state_id):
     elif request.method == 'POST':
         for state in states:
             if state.id == state_id:
-                new_dict = reqest.get_json()
+                new_dict = request.get_json()
                 if new_dict is None:
                     abort(400, 'Not a JSON')
                 if new_dict.get('name') is None:
