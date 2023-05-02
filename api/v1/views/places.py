@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 """ Handles all restful API actions for State"""
 
 from api.v1.views import app_views
