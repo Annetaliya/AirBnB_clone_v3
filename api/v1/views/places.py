@@ -13,6 +13,7 @@ from models.place import Place
 @app_views.route('cities/<city_id>/places',
                  methods=['GET', 'POST'], strict_slashes=False)
 def get_place_by_cityId(city_id):
+    '''gets the places by city id'''
     if request.method == 'GET':
         city = storage.get(City, city_id)
         if city:
