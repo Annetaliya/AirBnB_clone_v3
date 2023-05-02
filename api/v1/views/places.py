@@ -1,65 +1,76 @@
 #!/usr/bin/python3
-""" Handles all restful API actions for State"""
-
+"""restful API functions for retrieving places"""
 from api.v1.views import app_views
-from flask import request, jsonify, abort
-from models import storage
 from models.city import City
-from models.user import User
 from models.place import Place
+from models.user import User
+from models import storage
+from flask import request, jsonify, abort
 
 
-@app_views.route('cities/<city_id>/places',
-                 methods=['GET', 'POST'], strict_slashes=False)
+@app_views.route("/cities/<city_id>/places",
+                 strict_slashes=False,
+                 methods=["GET", "POST"]
+                 )
 def get_place_by_cityId(city_id):
-    '''gets the places by city id'''
-    if request.method == 'GET':
-        city = storage.get(City, city_id)
-        if city:
-            places = [plcae.to_dict() for place in city.places]
-            return jsonify(places)
-        abort(404)
-    elif request.method == 'POST':
-        city = storage.get(City, city_id)
-
-        if city:
-            user_dict = request.get_json()
-            if not user_dict:
-                abort(400, 'Not a JSON')
-            if not user_dict.get('user_id'):
-                abort(400, 'Missing user_id')
-            if not user_dict.get('name'):
-                abort(400, 'Missing name')
-
-            user = storage.get(User, user_dict.get('user_id'))
-            if not user:
-                abort(404)
-            else:
-                place = Place(**user_dict)
-                place.save()
-                return jsonify(place.to_dict()), 201
+    """retrieving places by city Id"""
+    cities = storage.all(City)
+    city_obj = [obj.to_dict() for obj in cities.values()]
+    if request.method == "GET":
+        for obj in city_obj:
+            if obj.get('id') == city_id:
+                places = storage.all(Place)
+                places_obj = [obj.to_dict() for obj in
+                               places.values() if
+                               obj.city_id == city_id]
+                return jsonify(places_obj)
         abort(404)
 
+    elif request.method == "POST":
+        for obj in city_obj:
+            if obj.get('id') == city_id:
+                my_dict = request.get_json()
+                if not my_dict or type(my_dict) is not dict:
+                    abort(400, "Not a JSON")
+                if not my_dict["name"]:
+                    abort(400, "Missing name")
+                if not my_dict.get('user_id'):
+                    abort(400, "Missing user_id")
+                user_obj = storage.all(User).values()
+                user_exists = False
+                for user_obj in user_objs:
+                    if user_obj.id == my_dict["user_id"]:
+                        user_exists = True
+                        break
+                if not user_exists:
+                    abort(404)
+                else:
+                    my_dict["city_id"] = city_id
+                    new_place = Place(**my_dict)
+                    new_place.save()
+                    return jsonify(new_place.to_dict()), 201
+        abort(404)
 
-@app_views.route('/places/<string:place_id>',
-                 methods=['GET', 'PUT', 'DELETE'], strict_slashes=False)
-def get_place_by_place_id(place_id):
-    '''Gets place based on the place_id'''
-    place = storage.get(Place, place_id)
 
-    if place is not None:
-        if request.method == 'GET':
-            return jsonify(place.to_dict())
-        if request.method == 'PUT':
-            new_dict = request.get_json()
-            if not new_dict:
-                abort(400, 'Not a JSON')
-            for key, value in new_dict.items():
-                setattr(place, key, value)
-            place.save()
-            return jsonify(place.to_dict()), 200
-        if request.method == 'DELETE':
-            place.delete()
-            storage.save()
-            return jsonify({}), 200
-    abort(404)
+@app_views.route("/places/<place_id>",
+                 strict_slashes=False,
+                 methods=["DELETE", "PUT", "GET"])
+def place_end_points(place_id):
+    """city objects that handles all default RESTFul API actions"""
+    obj_place = storage.get(Place, place_id)
+    if not obj_place:
+        abort(404)
+
+    if request.method == "GET":
+        return jsonify(obj_place.to_dict())
+    elif request.method == "DELETE":
+        storage.delete(obj_place)
+        storage.save()
+        return jsonify({}), 200
+    elif request.method == "PUT":
+        get_new_name = request.get_json()
+        if not get_new_name or type(get_new_name) is not dict:
+            abort(400, "Not a JSON")
+        obj_place.__dict__.update(get_new_name)
+        obj_place.save()
+        return jsonify(obj_place.to_dict()), 201
