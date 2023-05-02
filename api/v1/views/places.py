@@ -14,10 +14,10 @@ from models.place import Place
                  methods=['GET', 'POST'], strict_slashes=False)
 def get_place_by_cityId(city_id):
     if request.method == 'GET':
-        city_object = storage.get(City, city_id)
+        city = storage.get(City, city_id)
         if city:
-            for places in city.places():
-                return jsonify(places.to_dict())
+            places = [plcae.to_dict() for place in city.places]
+            return jsonify(places)
         abort(404)
     elif request.method == 'POST':
         city = storage.get(City, city_id)
@@ -35,7 +35,7 @@ def get_place_by_cityId(city_id):
             if not user:
                 abort(404)
             else:
-                place = Place(**new_dict)
+                place = Place(**user_dict)
                 place.save()
                 return jsonify(place.to_dict()), 201
         abort(404)
@@ -56,6 +56,8 @@ def get_place_by_place_id(place_id):
                 abort(400, 'Not a JSON')
             for key, value in new_dict.items():
                 setattr(place, key, value)
+            place.save()
+            return jsonify(place.to_dict()), 200
         if request.method == 'DELETE':
             place.delete()
             storage.save()
